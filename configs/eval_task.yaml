@@ -1,0 +1,74 @@
+model_name: symcan_trial3
+
+planner:
+  fast_downward: "/home/color/Masaüstü/FD/downward/fast-downward.py"
+  search: "eager_greedy([ff()])"
+
+data:
+  dataset_csv: "data.csv"
+  depth_image_dir: "DEPTH_IMAGES"
+
+eval:
+  # task settings
+  task: "inside"          # or "occlude"
+
+  # which output dimension corresponds to this task
+  # example:
+  # inside  -> 1
+  # occlude -> 2
+  task_output_dim: 1
+
+  # evaluation settings
+  seed: 42
+  dry_run: false
+
+  # planner/eval output folders
+  experiment_dir: "EVAL_EXPERIMENTS"
+  output_dir: "inside_eval"
+
+  # number of scenarios
+  n_baseline_scenarios: 10 # test per object-group-size
+
+  min_objects: 2
+  max_objects: 6
+
+  # one-shot
+  one_shot_included: false
+  n_scenarios_per_one_shot: 20
+  one_shot_in_pair_ratio: 0.1
+
+  validate_synthetic: true   # set false for no checks on synthetic data
+  feasibility_tries: 20      # raise if you want stricter validation
+
+tuple_constraints:
+  enabled: true
+
+  limits:
+    - ["inverted_cup", "inv_cup_w20_h20_thinner.urdf", 1]
+    - ["inverted_cup", "inv_cup_w18_h18_thinner.urdf", 1]
+    - ["inverted_cup", "inv_cup_w16_h16_thinner.urdf", 1]
+    - ["cup", "cup_w20_h20.urdf", 1]
+    - ["cup", "cup_w18_h18.urdf", 1]
+    - ["cup", "cup_w16_h16.urdf", 1]
+    - ["sphere", "0.14", 5]
+    - ["box", "0.14", 1]
+
+  pairs:
+    - [["cup", "cup_w20_h20.urdf"], ["inverted_cup", "inv_cup_w20_h20_thinner.urdf"]]
+    - [["cup", "cup_w18_h18.urdf"], ["inverted_cup", "inv_cup_w18_h18_thinner.urdf"]]
+    - [["cup", "cup_w16_h16.urdf"], ["inverted_cup", "inv_cup_w16_h16_thinner.urdf"]]
+    
+one_shot:
+  enabled: false
+  match_cache_path: "match_results_cache.json"
+
+  objects:
+    - ["cup", "objects/cup12_w32_h32.urdf"]
+    - ["cylinder", "0.14"]
+    - ["sphere", "0.12"]
+    - ["box", "0.12"]
+    - ["cup", "one_shot_objects/smooth_cone.urdf"]
+    - ["cup", "one_shot_objects/plus_w14_h10.urdf"]
+    - ["cup", "one_shot_objects/cup12_w16_h16.urdf"]
+
+  

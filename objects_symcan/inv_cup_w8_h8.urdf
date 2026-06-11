@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot name="inverted_cup_8x8cm">
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.0350" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.0800 0.0099"/></geometry>
+      <material name="red"><color rgba="1 0 0 0.7"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.0350" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.0800 0.0099"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0.0350 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.0099 0.0701"/></geometry>
+      <material name="blue"><color rgba="0 0 1 0.4"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0.0350 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.0099 0.0701"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0.04050 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0320 0.001 0.0320"/></geometry>
+      <material name="yellow"><color rgba="1 1 0 1"/></material>
+    </visual>
+
+    <visual>
+      <origin xyz="0 -0.0350 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.0099 0.0701"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.0350 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.0099 0.0701"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0.0350 0 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0099 0.0602 0.0701"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0350 0 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0099 0.0602 0.0701"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="-0.0350 0 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0099 0.0602 0.0701"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.0350 0 -0.0050" rpy="0 0 0"/>
+      <geometry><box size="0.0099 0.0602 0.0701"/></geometry>
+    </collision>
+  </link>
+</robot>

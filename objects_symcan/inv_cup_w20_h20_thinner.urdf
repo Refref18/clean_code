@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot name="inverted_cup_20x20cm">
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.0976" rpy="0 0 0"/>
+      <geometry><box size="0.2000 0.2000 0.0049"/></geometry>
+      <material name="red"><color rgba="1 0 0 0.7"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.0976" rpy="0 0 0"/>
+      <geometry><box size="0.2000 0.2000 0.0049"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0.0976 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.2000 0.0049 0.1951"/></geometry>
+      <material name="blue"><color rgba="0 0 1 0.4"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0.0976 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.2000 0.0049 0.1951"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0.10050 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.0800 0.001 0.0800"/></geometry>
+      <material name="yellow"><color rgba="1 1 0 1"/></material>
+    </visual>
+
+    <visual>
+      <origin xyz="0 -0.0976 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.2000 0.0049 0.1951"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.0976 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.2000 0.0049 0.1951"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0.0976 0 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.0049 0.1902 0.1951"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0976 0 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.0049 0.1902 0.1951"/></geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="-0.0976 0 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.0049 0.1902 0.1951"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.0976 0 -0.0024" rpy="0 0 0"/>
+      <geometry><box size="0.0049 0.1902 0.1951"/></geometry>
+    </collision>
+  </link>
+</robot>

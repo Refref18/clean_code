@@ -1,0 +1,37 @@
+# configs/eval.yaml
+# ------------------
+# Only required field: model_name.
+# All save paths (domain.pddl, results CSV, images, sim experiments) are
+# derived automatically from  save/<model_name>/eval/
+
+model_name: "symcan_trial3"          # must match the name used during training
+
+# ── data ──────────────────────────────────────────────────────────────────────
+data:
+  dataset_csv:    "data.csv"
+  depth_image_dir: "DEPTH_IMAGES/"        # same dir used during training
+
+# ── planner ───────────────────────────────────────────────────────────────────
+planner:
+  fast_downward: "/home/color/Masaüstü/FD/downward/fast-downward.py"
+  search:        "eager_greedy([ff()])"
+
+# ── eval settings ─────────────────────────────────────────────────────────────
+eval:
+  target_min_level:  1
+  target_max_level:  4
+  z_level_threshold: 0.1
+  dry_run:           false
+
+# ── one-shot (optional) ───────────────────────────────────────────────────────
+one_shot:
+  enabled:          false
+  match_cache_path: "match_results_cache.json"
+  objects:
+    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/cup12_w32_h32.urdf"]
+    - ["cylinder", "0.14"]
+    - ["sphere",   "0.12"]
+    - ["box",      "0.12"]
+    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/smooth_cone.urdf"]
+    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/plus_w14_h10.urdf"]
+    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/cup12_w16_h16.urdf"]
