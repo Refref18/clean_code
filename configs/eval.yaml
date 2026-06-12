@@ -18,7 +18,7 @@ planner:
 
 eval:
   seed:               42
-  simulate:           true    # false = verify against data.csv instead of running PyBullet
+  simulate:           false    # false = verify against data.csv instead of running PyBullet
 
   min_objects:        2       # smallest prefix length to evaluate
   max_objects:        6       # largest prefix length to evaluate

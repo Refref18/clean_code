@@ -18,7 +18,7 @@ planner:
 
 eval:
   seed:                 42
-  simulate:             true    # false = verify against data.csv instead of running PyBullet
+  simulate:             false    # false = verify against data.csv instead of running PyBullet
 
   task:                 "inside"   # inside | occlude
   goal_mode:            "specific" # specific = require the dataset pair | any = any pair achieves task
