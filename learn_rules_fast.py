@@ -461,13 +461,15 @@ def construct_domain(init_actions, action_schemas, final_schema, collapse_schema
         domain += f"\t\t(z{i} ?x)\n"
     for i in range(relation_dim + 1):
         domain += f"\t\t(r{i} ?x ?y)\n"
-    for i in range(last_x):
+    for i in range(max_count + 1):
         domain += f"\t\t(active-count-{i})\n"
         domain += f"\t\t(H{i})\n"
     for i in range(last_x + 1):
         domain += f"\t\t(top-{i} ?x)\n"
+    for i in range(1, max_count + 1):
+        domain += f"\t\t(check_collapse_count_{i})\n"
     domain += "\t\t(all-used)\n\t\t(pending-collapse-check)\n\t\t(pending-height-check)\n"
-    domain += "\t\t(active-count-collapse)\n\t\t(has-top-4)\n"
+    domain += "\t\t(active-count-collapse)\n\t\t(newly-added ?x)\n\t\t(has-top-4)\n\t\t(stack)\n"
     domain += "\t)\n"
     for schema in action_schemas:
         domain += schema
@@ -554,7 +556,7 @@ if __name__ == "__main__":
     collapse_schema = create_collapse_checks(collapse_syms, inserted_syms, normal_sym, sym_size=obj_dim)
 
     init_actions  = create_init_actions(operators, latent_dim=obj_dim)
-    final_schema  = create_final(latent_dim=obj_dim, max_objs=4)
+    final_schema  = create_final(latent_dim=obj_dim)
     domain        = construct_domain(init_actions, action_schemas, final_schema, collapse_schema,
                                      latent_dim=obj_dim, relation_dim=rel_dim)
 
