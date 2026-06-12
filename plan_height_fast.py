@@ -182,7 +182,7 @@ def build_cases(df, min_n, max_n, z_thr):
 
 # ── PDDL ──────────────────────────────────────────────────────────────────────
 def bits_pred(bits, v1, v2):
-    return "(and "+" ".join(f"({'not_'if b==0 else''}r{i} {v1} {v2})" for i,b in enumerate(bits))+")"
+    return "(and "+" ".join(f"(r{i} {v1} {v2})" if b==1 else f"(not (r{i} {v1} {v2}))" for i,b in enumerate(bits))+")"
 
 def write_problem(obj_syms, rel_dim, obj_dim, target_h, path):
     n     = len(obj_syms)
@@ -191,15 +191,15 @@ def write_problem(obj_syms, rel_dim, obj_dim, target_h, path):
         out = ""
         for i, bits in enumerate(obj_syms):
             out += f"\t\t(top-0 obj{i})\n\t\t"
-            out += " ".join(f"({'not_'if v==0 else''}z{j} obj{i})" for j,v in enumerate(bits))
-            out += f" (not_z{obj_dim} obj{i})\n"
+            out += " ".join(f"(z{j} obj{i})" if v==1 else f"(not (z{j} obj{i}))" for j,v in enumerate(bits))
+            out += f" (not (z{obj_dim} obj{i}))\n"
         return out
     def rel_init():
         out = ""
         for i in range(n):
             for j in range(n):
                 if i==j: continue
-                out += "\t\t"+" ".join(f"(not_r{k} obj{i} obj{j})" for k in range(rel_dim+1))+"\n"
+                out += "\t\t"+" ".join(f"(not (r{k} obj{i} obj{j}))" for k in range(rel_dim+1))+"\n"
         return out
     prob = (f"(define (problem blocks-problem)\n\t(:domain blocks)\n"
             f"\t(:objects\n\t\t{' '.join(f'obj{i}' for i in range(n))} - object\n\t)\n"
@@ -345,6 +345,92 @@ def _sample_diverse(all_cases, n_per_n):
         result.extend(selected[:n_per_n])
     return result
 
+# ── summary ───────────────────────────────────────────────────────────────────
+def _print_summary_height(df_r, min_n, max_n, simulate, t_total, t_plan_total, t_sim_total, cfg):
+    W = 100
+    print(f"\n{'='*W}")
+    print(f"  SUMMARY  tallest/shortest  N={min_n}..{max_n}  simulate={simulate}")
+    print(f"{'='*W}")
+
+    def _pct(num, den): return f"{100*num/den:.1f}%" if den else "—"
+
+    if simulate:
+        hdr = (f"{'N':>2}  {'goal':<5}  {'total':>5}  {'no_plan':>7}  {'no_plan%':>8}  "
+               f"{'success':>7}  {'success%':>8}  {'fail':>4}  {'fail%':>5}  "
+               f"{'collapse':>8}  {'collapse%':>9}  {'t_plan_avg':>10}  {'t_sim_avg':>9}")
+    else:
+        hdr = (f"{'N':>2}  {'goal':<5}  {'total':>5}  {'no_plan':>7}  {'no_plan%':>8}  "
+               f"{'planned':>7}  {'planned%':>8}  {'timeout':>7}  {'timeout%':>8}  "
+               f"{'t_plan_avg':>10}")
+    print(hdr)
+    print("-" * W)
+
+    totals = dict(total=0, no_plan=0, success=0, fail=0, collapse=0, timeout=0, planned=0,
+                  t_plan=0.0, t_sim=0.0)
+
+    for n in range(min_n, max_n + 1):
+        sub = df_r[df_r["n_objects"] == n]
+        if sub.empty: continue
+        for tag in ["short", "tall"]:
+            s = sub[sub["goal"] == tag]
+            if s.empty: continue
+            tot     = len(s)
+            no_plan = (s["status"] == "NO_PLAN").sum()
+            timeout = (s["plan_status"] == "TIMEOUT").sum()
+            planned = (s["plan_status"] == "SUCCESS").sum()
+            t_pa    = s["t_plan_sec"].mean() if "t_plan_sec" in s else 0.0
+            totals["total"]   += tot
+            totals["no_plan"] += int(no_plan)
+            totals["timeout"] += int(timeout)
+            totals["planned"] += int(planned)
+            totals["t_plan"]  += s["t_plan_sec"].sum() if "t_plan_sec" in s else 0.0
+
+            if simulate:
+                success  = (s["status"] == "SUCCESS").sum()
+                fail     = (s["status"] == "FAIL").sum()
+                collapse = (s["status"] == "COLLAPSE").sum()
+                t_sa     = s["t_sim_sec"].mean() if "t_sim_sec" in s else 0.0
+                totals["success"]  += int(success)
+                totals["fail"]     += int(fail)
+                totals["collapse"] += int(collapse)
+                totals["t_sim"]    += s["t_sim_sec"].sum() if "t_sim_sec" in s else 0.0
+                print(f"{n:>2}  {tag:<5}  {tot:>5}  {no_plan:>7}  {_pct(no_plan,tot):>8}  "
+                      f"{success:>7}  {_pct(success,tot):>8}  {fail:>4}  {_pct(fail,tot):>5}  "
+                      f"{collapse:>8}  {_pct(collapse,tot):>9}  {t_pa:>10.2f}s  {t_sa:>8.2f}s")
+            else:
+                print(f"{n:>2}  {tag:<5}  {tot:>5}  {no_plan:>7}  {_pct(no_plan,tot):>8}  "
+                      f"{planned:>7}  {_pct(planned,tot):>8}  {timeout:>7}  {_pct(timeout,tot):>8}  "
+                      f"{t_pa:>10.2f}s")
+
+    print("-" * W)
+    T = totals["total"]
+    if simulate:
+        t_pa = totals["t_plan"] / max(T, 1)
+        t_sa = totals["t_sim"]  / max(T, 1)
+        print(f"{'':>2}  {'TOTAL':<5}  {T:>5}  {totals['no_plan']:>7}  "
+              f"{_pct(totals['no_plan'],T):>8}  "
+              f"{totals['success']:>7}  {_pct(totals['success'],T):>8}  "
+              f"{totals['fail']:>4}  {_pct(totals['fail'],T):>5}  "
+              f"{totals['collapse']:>8}  {_pct(totals['collapse'],T):>9}  "
+              f"{t_pa:>10.2f}s  {t_sa:>8.2f}s")
+    else:
+        t_pa = totals["t_plan"] / max(T, 1)
+        print(f"{'':>2}  {'TOTAL':<5}  {T:>5}  {totals['no_plan']:>7}  "
+              f"{_pct(totals['no_plan'],T):>8}  "
+              f"{totals['planned']:>7}  {_pct(totals['planned'],T):>8}  "
+              f"{totals['timeout']:>7}  {_pct(totals['timeout'],T):>8}  "
+              f"{t_pa:>10.2f}s")
+
+    print(f"\n── Timing {'─'*40}")
+    print(f"  total wall time  : {t_total:.1f}s")
+    print(f"  planning total   : {t_plan_total:.1f}s  (avg {t_plan_total/max(T,1):.2f}s/case)")
+    if simulate:
+        print(f"  simulation total : {t_sim_total:.1f}s  (avg {t_sim_total/max(T,1):.2f}s/case)")
+    print(f"  results -> {cfg['_results']}")
+    print(f"  images  -> {cfg['_img_dir']}")
+    print(f"{'='*W}\n")
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser()
@@ -473,32 +559,7 @@ def main():
     df_r = pd.DataFrame(results)
     df_r.to_csv(cfg["_results"], index=False)
 
-    print(f"\n{'='*50}\nSUMMARY  N={min_n}..{max_n}  simulate={simulate}\n{'='*50}")
-    for n in range(min_n, max_n+1):
-        sub = df_r[df_r["n_objects"]==n]
-        if sub.empty: continue
-        for tag in ["short","tall"]:
-            s = sub[sub["goal"]==tag]
-            if s.empty: continue
-            n_plan = (s["plan_status"]=="SUCCESS").sum()
-            if simulate:
-                ran = s[s["plan_status"]=="SUCCESS"]
-                pct = f"{100*ran['success'].mean():.0f}%" if len(ran) else "—"
-                print(f"  N={n} {tag}: total={len(s)}  planned={n_plan}  "
-                      f"success={s['success'].sum()}  "
-                      f"no_plan={(s['status']=='NO_PLAN').sum()}  "
-                      f"collapse={(s['status']=='COLLAPSE').sum()}  sim_acc={pct}")
-            else:
-                print(f"  N={n} {tag}: total={len(s)}  planned={n_plan}  "
-                      f"no_plan={(s['status']=='NO_PLAN').sum()}")
-
-    n_cases = len(results)
-    print(f"\n── Timing ──────────────────────────────────────")
-    print(f"  total            : {t_total:.1f}s")
-    print(f"  planning         : {t_plan_total:.1f}s  (avg {t_plan_total/max(n_cases,1):.2f}s/case)")
-    if simulate:
-        print(f"  simulation       : {t_sim_total:.1f}s  (avg {t_sim_total/max(n_cases,1):.2f}s/case)")
-    print(f"  results -> {cfg['_results']}\n  images  -> {cfg['_img_dir']}")
+    _print_summary_height(df_r, min_n, max_n, simulate, t_total, t_plan_total, t_sim_total, cfg)
 
 if __name__ == "__main__":
     main()

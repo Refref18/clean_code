@@ -1,0 +1,37 @@
+# ── Run identity ─────────────────────────────────────────────────────────────
+run:
+  name: "symcan_trial3_2"   # logs/symcan_v1/ will be created for this run
+
+# ── Reproducibility ───────────────────────────────────────────────────────────
+seed: 42
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+data:
+  csv_path:        "data.csv"
+  depth_image_dir: "DEPTH_IMAGES"
+  max_rows:        50_000
+  val_ratio:       0.2
+  test_ratio:      0.2
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  hidden_dim:      64
+  symbol_size:     2        # relational symbol bits
+  obj_symbol_size: 4        # object-level symbol bits
+  discrete:        true
+  symbolic:        true
+
+# ── Loss ──────────────────────────────────────────────────────────────────────
+loss:
+  w_bce:              20.0
+  w_mse_reg:          10.0
+  w_mse_dims:         [1.0, 10.0, 1.0, 10.0]    # per-dim [MinX, MinZ, MaxX, MaxZ]
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  epochs:              2_000
+  batch_size:          256
+  lr:                  3.0e-4
+  lr_factor:           0.5
+  lr_patience:         40
+  early_stop_patience: 100

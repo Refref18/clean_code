@@ -38,6 +38,8 @@ import pandas as pd
 import torch
 import yaml
 from PIL import Image, ImageDraw, ImageFont
+from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 
 from model import load_ckpt
 from symbol_semantics import get_semantic_symbols, get_symbol_map
@@ -216,18 +218,45 @@ def load_depth_image(obj_type, obj_size_or_path, depth_dir, device):
 
 
 def get_obj_symbols(ordered_objects, model, cfg):
+    """
+    Compute object symbols exactly like PLAN_HEIGHT.py: one object at a time,
+    wrapped as a single-node PyG graph and passed through a single-item
+    DataLoader before image encoding + centroid lookup.
+
+    This avoids the wrong-symbol issue caused by calling model.get_object_symbols
+    on a stacked tensor of several objects, while also avoiding the full
+    preprocessing path that may open PyBullet clients.
+    """
+    import torch.nn.functional as F
+
     depth_dir = cfg["data"]["depth_image_dir"]
     device = next(model.parameters()).device
-    imgs = [load_depth_image(otype, opath, depth_dir, device)
-            for otype, opath in ordered_objects]
-    x = torch.stack(imgs, dim=0)
+
     model.eval()
     model.gs_obj_layer.hard = True
     model.gs_obj_layer.deterministic = True
-    with torch.no_grad():
-        bits, _ = model.get_object_symbols(x)
-    return bits.cpu().int().tolist()
 
+    results = []
+    with torch.no_grad():
+        for otype, opath in ordered_objects:
+            # Keep image loading on CPU first, then let the DataLoader create the
+            # same single-graph batch structure used in PLAN_HEIGHT.py.
+            img = load_depth_image(otype, opath, depth_dir, torch.device("cpu"))
+            single = Data(
+                x=img.unsqueeze(0),
+                edge_index=torch.empty((2, 0), dtype=torch.long),
+                edge_attr=torch.empty((0, 5), dtype=torch.float),
+            )
+            loader = DataLoader([single], batch_size=1, shuffle=False, num_workers=0)
+            batch = next(iter(loader))
+
+            x = batch.x.float().to(device)
+            feats = model.image_encoder(x)
+            sim = F.normalize(feats, dim=-1) @ F.normalize(model.cluster_centroids, dim=-1).T
+            bits = model.cluster_codes[sim.argmax(dim=-1)]
+            results.append(bits.squeeze(0).cpu().int().tolist())
+
+    return results
 
 def build_object_symbol_cache(objects, model, cfg):
     unique = []

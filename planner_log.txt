@@ -1,0 +1,14 @@
+INFO     planner time limit: 300s
+INFO     planner memory limit: None
+
+INFO     Running translator.
+INFO     translator stdin: None
+INFO     translator time limit: 299s
+INFO     translator memory limit: None
+INFO     translator command line string: /home/color/anaconda3/bin/python -m translate save/symcan_trial3/domain.pddl save/symcan_trial3/eval_task/inside/pddl/p_0000_N2_f04bf39675f0.pddl --sas-file output.sas
+Parsing...
+Parsing: [1.210s CPU, 1.217s wall-clock]
+Normalizing task... [0.090s CPU, 0.095s wall-clock]
+Instantiating...
+Generating Datalog program... [0.130s CPU, 0.126s wall-clock]
+Normalizing Datalog program...

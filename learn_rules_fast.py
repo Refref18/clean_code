@@ -13,7 +13,7 @@ from classes.effect import Effect
 from load_data import preprocess_to_dataset_normalized, set_seed, calculate_bbox_stats, load_data_pddl
 import load_data as _load_data
 from utils import build_bank_optimized
-from symbol_semantics import get_semantic_symbols, create_collapse_checks
+from symbol_semantics_fast import get_semantic_symbols, create_collapse_checks
 # ─────────────────────────────────────────────────────────────────────────────
 # Dataset
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,7 +144,8 @@ def collate_preds(model, loader, n_eps=100):
 
     Returns a TowerDataset (flat list of Sample namedtuples).
     """
-    model.gs_layer.deterministic = False
+    model.eval()                          # ← FIXED: BatchNorm uses running stats
+    model.gs_layer.deterministic = False  # keep stochastic for Gumbel voting
     torch.set_grad_enabled(False)
     device = next(model.parameters()).device
 
@@ -333,14 +334,14 @@ def precond_to_pddl(params, z_i, r_i, indentation="\t\t"):
         if obj_val:
             schema += indentation
             for j, val in enumerate(obj_val):
-                schema += f"(z{j} ?{name}) " if val == 1 else f"(not_z{j} ?{name}) "
+                schema += f"(z{j} ?{name}) " if val == 1 else f"(not (z{j} ?{name})) "
             schema += "\n"
 
     for k, rel_dict in enumerate(r_i):
         if rel_dict:
             schema += indentation
             for (n1, n2), val in rel_dict.items():
-                schema += f"(r{k} ?{n1} ?{n2}) " if val == 1 else f"(not_r{k} ?{n1} ?{n2}) "
+                schema += f"(r{k} ?{n1} ?{n2}) " if val == 1 else f"(not (r{k} ?{n1} ?{n2})) "
             schema += "\n"
 
     schema += "\t)\n"
@@ -364,8 +365,8 @@ def effect_to_pddl(effect, active_count, params, indentation="\t\t"):
     for i, p in enumerate(top_items):
         schema += f"{indentation}(and (top-{i+1} {p}) (not (top-{i} {p})))\n"
 
-    _ZVAL = {1: "(and (z{j} ?{n}) (not (not_z{j} ?{n}))) ",
-            -1: "(and (not_z{j} ?{n}) (not (z{j} ?{n}))) "}
+    _ZVAL = {1:  "(z{j} ?{n}) ",
+            -1: "(not (z{j} ?{n})) "}
     for name, obj_val in z_eff.items():
         if obj_val:
             schema += indentation
@@ -374,8 +375,8 @@ def effect_to_pddl(effect, active_count, params, indentation="\t\t"):
                     schema += _ZVAL[val].format(j=j, n=name)
             schema += "\n"
 
-    _RVAL = {1: "(and (r{k} ?{n1} ?{n2}) (not (not_r{k} ?{n1} ?{n2}))) ",
-            -1: "(and (not_r{k} ?{n1} ?{n2}) (not (r{k} ?{n1} ?{n2}))) "}
+    _RVAL = {1:  "(r{k} ?{n1} ?{n2}) ",
+            -1: "(not (r{k} ?{n1} ?{n2})) "}
     for k, rel_dict in enumerate(r_eff):
         if rel_dict:
             schema += indentation
@@ -424,13 +425,13 @@ def create_init_actions(operators, latent_dim):
         schema += f"\t\t(not (pending-height-check))\n"
         schema += f"\t\t(top-0 ?o0)\n\t\t"
         for j, val in enumerate(obj_bits):
-            schema += f"(z{j} ?o0) " if val == 1 else f"(not_z{j} ?o0) "
-        schema += f"(not_z{latent_dim} ?o0)\n"
+            schema += f"(z{j} ?o0) " if val == 1 else f"(not (z{j} ?o0)) "
+        schema += f"(not (z{latent_dim} ?o0))\n"
         schema += f"\t)\n"
         schema += f"\t:effect (and\n"
         schema += f"\t\t(not (active-count-0)) (active-count-1)\n"
         schema += f"\t\t(pending-height-check)\n"
-        schema += f"\t\t(and (z{latent_dim} ?o0) (not (not_z{latent_dim} ?o0)))\n"
+        schema += f"\t\t(z{latent_dim} ?o0)\n"
         schema += f"\t\t(top-1 ?o0)\n"
         schema += f"\t)\n)\n"
         init_actions.append(schema)
@@ -451,16 +452,15 @@ def create_final(latent_dim):
     schema += f"\t)\n)\n"
     return schema
 
-
 def construct_domain(init_actions, action_schemas, final_schema, collapse_schema,
                      latent_dim, relation_dim, max_count=10, last_x=4):
     domain  = "(define (domain blocks)\n"
     domain += "\t(:requirements :equality :disjunctive-preconditions :universal-preconditions)\n"
     domain += "\t(:predicates\n"
     for i in range(latent_dim + 1):      # +1 for the active bit
-        domain += f"\t\t(z{i} ?x) (not_z{i} ?x)\n"
+        domain += f"\t\t(z{i} ?x)\n"
     for i in range(relation_dim + 1):
-        domain += f"\t\t(r{i} ?x ?y) (not_r{i} ?x ?y)\n"
+        domain += f"\t\t(r{i} ?x ?y)\n"
     for i in range(max_count + 1):
         domain += f"\t\t(active-count-{i})\n"
         domain += f"\t\t(H{i})\n"
@@ -556,7 +556,7 @@ if __name__ == "__main__":
     collapse_schema = create_collapse_checks(collapse_syms, inserted_syms, normal_sym, sym_size=obj_dim)
 
     init_actions  = create_init_actions(operators, latent_dim=obj_dim)
-    final_schema  = create_final(latent_dim=obj_dim)
+    final_schema  = create_final(latent_dim=obj_dim, max_objs=4)
     domain        = construct_domain(init_actions, action_schemas, final_schema, collapse_schema,
                                      latent_dim=obj_dim, relation_dim=rel_dim)
 

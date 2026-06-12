@@ -77,18 +77,17 @@ model.eval()
 with torch.no_grad():
     for batch in loader:
         batch.x = batch.x.float().to(device)
-        feats_all_nodes = model.image_encoder(batch.x)     # [Total_N, 64]
+
+        # ONE call for the whole batch — correct BN statistics
+        bits_batch, feats_batch = model.get_object_symbols(batch.x)
+        # feats_batch = [Total_N, 64], bits_batch = [Total_N, obj_sym]
 
         for i in range(batch.num_graphs):
             node_ids  = (batch.batch == i).nonzero(as_tuple=True)[0]
             last_node = node_ids[-1]
 
-            # Only the last node matches meta_obj_type
-            last_feat = feats_all_nodes[last_node].unsqueeze(0)  # [1, 64]
-            last_bits, _ = model.get_object_symbols(batch.x[last_node].unsqueeze(0))
-
-            all_feats.append(last_feat.cpu())
-            all_bits.append(last_bits.cpu())
+            all_feats.append(feats_batch[last_node].unsqueeze(0).cpu())
+            all_bits.append(bits_batch[last_node].unsqueeze(0).cpu())
 
             obj_type, obj_size = batch.meta_obj_type[i][0]
             clean_size = str(obj_size).split('/')[-1].replace('.urdf', '')

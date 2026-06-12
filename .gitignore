@@ -1,4 +1,7 @@
 data*
 save*
-*.zipTHE_SymCAN-pddl.zip
 *.zip
+THE_SymCAN-pddl.zip
+*.zip
+RESULT*
+pool*

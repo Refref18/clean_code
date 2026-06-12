@@ -1,37 +1,27 @@
-# configs/eval.yaml
-# ------------------
-# Only required field: model_name.
-# All save paths (domain.pddl, results CSV, images, sim experiments) are
-# derived automatically from  save/<model_name>/eval/
+# eval_height.yaml — used by plan_height.py
+# Run: python plan_height.py -c configs/eval_height.yaml
+#
+# One case per unique object pool per N.
+# n_scenarios_per_n caps how many pools are evaluated per prefix length.
+# If n_scenarios_per_n > available pools, pools are reused to fill the quota.
 
-model_name: "symcan_trial3"          # must match the name used during training
+model_name: "symcan_trial3"
 
-# ── data ──────────────────────────────────────────────────────────────────────
 data:
-  dataset_csv:    "data.csv"
-  depth_image_dir: "DEPTH_IMAGES/"        # same dir used during training
+  dataset_csv:     "data.csv"
+  depth_image_dir: "DEPTH_IMAGES"
 
-# ── planner ───────────────────────────────────────────────────────────────────
 planner:
-  fast_downward: "/home/color/Masaüstü/FD/downward/fast-downward.py"
-  search:        "eager_greedy([ff()])"
+  fast_downward:  "/home/color/Masaüstü/FD/downward/fast-downward.py"
+  search:         "eager_greedy([ff()])"
+  time_limit_sec: 1000
 
-# ── eval settings ─────────────────────────────────────────────────────────────
 eval:
-  target_min_level:  1
-  target_max_level:  4
-  z_level_threshold: 0.1
-  dry_run:           false
+  seed:               42
+  simulate:           true    # false = verify against data.csv instead of running PyBullet
 
-# ── one-shot (optional) ───────────────────────────────────────────────────────
-one_shot:
-  enabled:          false
-  match_cache_path: "match_results_cache.json"
-  objects:
-    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/cup12_w32_h32.urdf"]
-    - ["cylinder", "0.14"]
-    - ["sphere",   "0.12"]
-    - ["box",      "0.12"]
-    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/smooth_cone.urdf"]
-    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/plus_w14_h10.urdf"]
-    - ["cup",      "/home/color/Masaüstü/MART-SCAN/env/one_shot_objects/cup12_w16_h16.urdf"]
+  min_objects:        2       # smallest prefix length to evaluate
+  max_objects:        6       # largest prefix length to evaluate
+  z_level_threshold:  0.1     # height threshold for stepwise level counting
+
+  n_scenarios_per_n:  5      # max cases per N (unique pools first); 0 = all
